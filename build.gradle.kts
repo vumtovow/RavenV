@@ -51,9 +51,11 @@ loom {
         defaultRefmapName.set("mixins.$modid.refmap.json")
     }
 }
-sourceSets.main {
-    output.setResourcesDir(sourceSets.main.flatMap { it.java.classesDirectory })
-}
+
+//sourceSets.main {
+//    output.setResourcesDir(sourceSets.main.flatMap { it.java.classesDirectory })
+//}
+
 // Dependencies:
 repositories {
     mavenCentral()
@@ -110,6 +112,7 @@ val remapJar by tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar") {
 tasks.jar {
     archiveClassifier.set("without-deps")
     destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 tasks.shadowJar {
     destinationDirectory.set(layout.buildDirectory.dir("intermediates"))
@@ -123,4 +126,5 @@ tasks.shadowJar {
     // If you want to include other dependencies and shadow them, you can relocate them in here
     fun relocate(name: String) = relocate(name, "$baseGroup.deps.$name")
 }
+
 tasks.assemble.get().dependsOn(tasks.remapJar)
