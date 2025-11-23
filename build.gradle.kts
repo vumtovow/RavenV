@@ -79,6 +79,12 @@ dependencies {
     // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.21")
 
+    // Kotlin coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    shadowImpl("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3") {
+        isTransitive = false
+    }
+
     // If you don't want mixins, remove these lines
     shadowImpl("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
         isTransitive = false
