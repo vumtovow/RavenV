@@ -16,18 +16,26 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.texture.TextureUtil;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
 
 public class HUD extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private List<Module> activeModules = new ArrayList<>();
+    private BufferedImage logoImage;
+    private int logoTextureId = -1;
+
     public final ModeProperty colorMode = new ModeProperty(
             "color", 3, new String[]{"RAINBOW", "CHROMA", "ASTOLFO", "CUSTOM1", "CUSTOM12", "CUSTOM123"}
     );
@@ -51,6 +59,12 @@ public class HUD extends Module {
     public final BooleanProperty blinkTimer = new BooleanProperty("blink-timer", true);
     public final BooleanProperty toggleSound = new BooleanProperty("toggle-sounds", true);
     public final BooleanProperty toggleAlerts = new BooleanProperty("toggle-alerts", false);
+
+    public final BooleanProperty showLogo = new BooleanProperty("show-logo", false);
+    public final IntProperty logoX = new IntProperty("logo-x", 5, 0, 1000);
+    public final IntProperty logoY = new IntProperty("logo-y", 5, 0, 1000);
+    public final IntProperty logoSize = new IntProperty("logo-size", 64, 16, 256);
+    public final PercentProperty logoOpacity = new PercentProperty("logo-opacity", 100);
 
     private String getModuleName(Module module) {
         String moduleName = module.getName();
@@ -93,6 +107,54 @@ public class HUD extends Module {
 
     public HUD() {
         super("HUD", true, true);
+    }
+
+    @Override
+    public void onEnabled() {
+        loadLogo();
+    }
+
+    private void loadLogo() {
+        try {
+            File logoFile = new File("./src/main/resources/assets/ravenv/ui/", "logo.png");
+            if (!logoFile.exists()) {
+                return;
+            }
+            this.logoImage = ImageIO.read(logoFile);
+            if (this.logoImage != null) {
+                this.logoTextureId = TextureUtil.glGenTextures();
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.logoTextureId);
+                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
+                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
+                uploadTextureImageData(this.logoImage);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void uploadTextureImageData(BufferedImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int[] pixels = new int[width * height];
+        image.getRGB(0, 0, width, height, pixels, 0, width);
+
+        int[] pixelsGL = new int[width * height];
+        for (int i = 0; i < pixels.length; i++) {
+            int pixel = pixels[i];
+            int a = (pixel >> 24) & 0xFF;
+            int r = (pixel >> 16) & 0xFF;
+            int g = (pixel >> 8) & 0xFF;
+            int b = pixel & 0xFF;
+            pixelsGL[i] = (a << 24) | (b << 16) | (g << 8) | r;
+        }
+
+        java.nio.IntBuffer buffer = java.nio.ByteBuffer.allocateDirect(pixelsGL.length * 4).asIntBuffer();
+        buffer.put(pixelsGL).flip();
+
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
     }
 
     public Color getColor(long time) {
@@ -168,6 +230,11 @@ public class HUD extends Module {
                 RenderUtil.disableRenderState();
             }
         }
+
+        if (this.showLogo.getValue() && this.logoTextureId >= 0) {
+            renderLogo();
+        }
+
         if (this.isEnabled() && !mc.gameSettings.showDebugInfo) {
             float height = (float) mc.fontRendererObj.FONT_HEIGHT - 1.0F;
             float x = (float) this.offsetX.getValue()
@@ -272,7 +339,7 @@ public class HUD extends Module {
                     long movementPacketSize = RavenV.blinkManager.countMovement();
                     if (movementPacketSize > 0L) {
                         GlStateManager.enableBlend();
-                        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                         mc.fontRendererObj
                                 .drawString(
                                         String.valueOf(movementPacketSize),
@@ -289,5 +356,41 @@ public class HUD extends Module {
             GlStateManager.enableDepth();
             GlStateManager.popMatrix();
         }
+    }
+
+    private void renderLogo() {
+        GlStateManager.pushMatrix();
+        int logoWidth = this.logoSize.getValue();
+        int logoHeight = this.logoSize.getValue();
+
+        GlStateManager.translate(this.logoX.getValue(), this.logoY.getValue(), 0);
+
+        float opacity = this.logoOpacity.getValue().floatValue() / 100.0F;
+        GlStateManager.color(1.0F, 1.0F, 1.0F, opacity);
+
+        GlStateManager.enableBlend();
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.logoTextureId);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+        drawTexturedRect(0, 0, logoWidth, logoHeight);
+
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.disableBlend();
+        GlStateManager.popMatrix();
+    }
+
+    private void drawTexturedRect(int x, int y, int width, int height) {
+        net.minecraft.client.renderer.Tessellator tessellator = net.minecraft.client.renderer.Tessellator.getInstance();
+        net.minecraft.client.renderer.WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+
+        worldRenderer.begin(7, net.minecraft.client.renderer.vertex.DefaultVertexFormats.POSITION_TEX);
+        worldRenderer.pos(x, y + height, 0).tex(0, 1).endVertex();
+        worldRenderer.pos(x + width, y + height, 0).tex(1, 1).endVertex();
+        worldRenderer.pos(x + width, y, 0).tex(1, 0).endVertex();
+        worldRenderer.pos(x, y, 0).tex(0, 0).endVertex();
+        tessellator.draw();
     }
 }
