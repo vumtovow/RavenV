@@ -340,15 +340,26 @@ public class HUD extends Module {
                     if (movementPacketSize > 0L) {
                         GlStateManager.enableBlend();
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        mc.fontRendererObj
-                                .drawString(
-                                        String.valueOf(movementPacketSize),
-                                        (float) new ScaledResolution(mc).getScaledWidth() / 2.0F / this.scale.getValue()
+                            if (this.shadow.getValue()) {
+                                mc.fontRendererObj
+                                    .drawString(
+                                            String.valueOf(movementPacketSize),
+                                            (float) new ScaledResolution(mc).getScaledWidth() / 2.0F / this.scale.getValue()
+                                                    - (float) mc.fontRendererObj.getStringWidth(String.valueOf(movementPacketSize)) / 2.0F,
+                                            (float) new ScaledResolution(mc).getScaledHeight() / 5.0F * 3.0F / this.scale.getValue(),
+                                            this.getColor(l, offset).getRGB() & 16777215 | -1090519040,
+                                            this.shadow.getValue()
+                                    );
+                            } else {
+                                mc.fontRendererObj
+                                    .drawStringWithShadow(
+                                            String.valueOf(movementPacketSize),
+                                            (float) new ScaledResolution(mc).getScaledWidth() / 2.0F / this.scale.getValue()
                                                 - (float) mc.fontRendererObj.getStringWidth(String.valueOf(movementPacketSize)) / 2.0F,
-                                        (float) new ScaledResolution(mc).getScaledHeight() / 5.0F * 3.0F / this.scale.getValue(),
-                                        this.getColor(l, offset).getRGB() & 16777215 | -1090519040,
-                                        this.shadow.getValue()
-                                );
+                                            (float) new ScaledResolution(mc).getScaledHeight() / 5.0F * 3.0F / this.scale.getValue(),
+                                            this.getColor(l, offset).getRGB() & 16777215 | -1090519040
+                                    );
+                            }
                         GlStateManager.disableBlend();
                     }
                 }

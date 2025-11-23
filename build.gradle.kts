@@ -2,6 +2,7 @@ import org.apache.commons.lang3.SystemUtils
 plugins {
     idea
     java
+    kotlin("jvm") version "1.9.21"
     id("gg.essential.loom") version "0.10.0.+"
     id("dev.architectury.architectury-pack200") version "0.1.3"
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -14,7 +15,11 @@ val mixinGroup = "$baseGroup.mixin"
 val modid: String by project
 val jarName: String by project
 val transformerFile = file("src/main/resources/accesstransformer.cfg")
-// Toolchains:
+
+// Kotlin configuration:
+kotlin {
+    jvmToolchain(8)
+}
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 }
@@ -41,10 +46,10 @@ loom {
         pack200Provider.set(dev.architectury.pack200.java.Pack200Adapter())
         // If you don't want mixins, remove this lines
         mixinConfig("mixins.$modid.json")
-	    if (transformerFile.exists()) {
-			println("Installing access transformer")
-		    accessTransformer(transformerFile)
-	    }
+        if (transformerFile.exists()) {
+            println("Installing access transformer")
+            accessTransformer(transformerFile)
+        }
     }
     // If you don't want mixins, remove these lines
     mixin {
@@ -70,6 +75,10 @@ dependencies {
     minecraft("com.mojang:minecraft:1.8.9")
     mappings("de.oceanlabs.mcp:mcp_stable:22-1.8.9")
     forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
+
+    // Kotlin stdlib
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.21")
+
     // If you don't want mixins, remove these lines
     shadowImpl("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
         isTransitive = false
@@ -82,6 +91,11 @@ dependencies {
 tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
 }
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java) {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
 tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     archiveBaseName.set(jarName)
     manifest.attributes.run {
@@ -90,8 +104,8 @@ tasks.withType(org.gradle.jvm.tasks.Jar::class) {
         // If you don't want mixins, remove these lines
         this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
         this["MixinConfigs"] = "mixins.$modid.json"
-	    if (transformerFile.exists())
-			this["FMLAT"] = "${modid}_at.cfg"
+        if (transformerFile.exists())
+            this["FMLAT"] = "${modid}_at.cfg"
     }
 }
 tasks.processResources {
