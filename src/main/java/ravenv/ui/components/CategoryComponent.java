@@ -14,7 +14,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CategoryComponent {
-    private final int MAX_HEIGHT = 300;
+    private static final int MAX_HEIGHT = 300;
+    private static final Color BG_HEADER = new Color(20, 20, 28, 220);
+    private static final Color BG_CONTENT = new Color(12, 12, 16, 200);
+    private static final Color BORDER_COLOR = new Color(100, 150, 255, 120);
+    private static final Color TEXT_COLOR = new Color(245, 245, 250);
+    private static final Color ACCENT_COLOR = new Color(100, 150, 255);
+    private static final Color SHADOW_COLOR = new Color(0, 0, 0, 60);
+    private static final int CORNER_RADIUS = 4;
+    private static final int SHADOW_SIZE = 8;
 
     public ArrayList<Component> modulesInCategory = new ArrayList<>();
     public String categoryName;
@@ -37,13 +45,13 @@ public class CategoryComponent {
         this.width = 92;
         this.x = 5;
         this.y = 5;
-        this.bh = 13;
+        this.bh = 14;
         this.xx = 0;
         this.categoryOpened = false;
         this.dragging = false;
         int tY = this.bh + 3;
-        this.marginX = 80;
-        this.marginY = 4.5;
+        this.marginX = 76;
+        this.marginY = 4;
         for (Module mod : modules) {
             ModuleComponent b = new ModuleComponent(mod, this, tY);
             this.modulesInCategory.add(b);
@@ -94,13 +102,20 @@ public class CategoryComponent {
         if (scroll > maxScroll) scroll = maxScroll;
         if (animScroll > maxScroll) animScroll = maxScroll;
         animScroll += (scroll - animScroll) * 0.2;
+
+        drawShadow(this.x, this.y, this.x + this.width, this.categoryOpened && !this.modulesInCategory.isEmpty() ? this.y + this.bh + Math.min(height, MAX_HEIGHT) + 4 : this.y + this.bh);
+
         if (!this.modulesInCategory.isEmpty() && this.categoryOpened) {
             int displayHeight = Math.min(height, MAX_HEIGHT);
-            Gui.drawRect(this.x - 1, this.y, this.x + this.width + 1, this.y + this.bh + displayHeight + 4, new Color(0, 0, 0, 100).getRGB());
+            drawRoundedRect(this.x, this.y + this.bh, this.x + this.width, this.y + this.bh + displayHeight + 4, CORNER_RADIUS, BG_CONTENT.getRGB());
         }
-        Gui.drawRect((this.x - 2), this.y, (this.x + this.width + 2), (this.y + this.bh + 3), new Color(0, 0, 0, 200).getRGB());
-        renderer.drawString(this.categoryName, (float) (this.x + 2), (float) (this.y + 4), -1, false);
-        renderer.drawString(this.categoryOpened ? "-" : "+", (float) (this.x + marginX), (float) ((double) this.y + marginY), Color.white.getRGB(), false);
+
+        drawRoundedRect(this.x, this.y, this.x + this.width, this.y + this.bh, CORNER_RADIUS, BG_HEADER.getRGB());
+        drawRoundedBorder(this.x, this.y, this.x + this.width, this.categoryOpened && !this.modulesInCategory.isEmpty() ? this.y + this.bh + Math.min(height, MAX_HEIGHT) + 4 : this.y + this.bh, CORNER_RADIUS);
+
+        renderer.drawString(this.categoryName, (float) (this.x + 6), (float) (this.y + 3), TEXT_COLOR.getRGB(), false);
+        renderer.drawString(this.categoryOpened ? "−" : "+", (float) (this.x + marginX), (float) ((double) this.y + marginY), ACCENT_COLOR.getRGB(), false);
+
         if (this.categoryOpened && !this.modulesInCategory.isEmpty()) {
             int renderHeight = 0;
             ScaledResolution sr = new ScaledResolution(Minecraft.getMinecraft());
@@ -119,11 +134,52 @@ public class CategoryComponent {
                 renderHeight += compHeight;
             }
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
             if (height > MAX_HEIGHT) {
                 float scrollY = (float) this.y + this.bh + 3 + (float) (animScroll * MAX_HEIGHT / height);
-                Gui.drawRect(this.x + this.width - 2, (int) scrollY, this.x + this.width, (int) (scrollY + ((float) MAX_HEIGHT * MAX_HEIGHT / height)), new Color(255, 255, 255, 60).getRGB());
+                float scrollHeight = (float) MAX_HEIGHT * MAX_HEIGHT / height;
+                Gui.drawRect(this.x + this.width - 3, (int) scrollY, this.x + this.width - 1, (int) (scrollY + scrollHeight), ACCENT_COLOR.getRGB());
             }
         }
+    }
+
+    private void drawShadow(int x1, int y1, int x2, int y2) {
+        for (int i = SHADOW_SIZE; i > 0; i--) {
+            float alpha = (float) (60 - i * 4) / 255f;
+            int shadowColor = new Color(0, 0, 0, Math.max(0, (int)(alpha * 255))).getRGB();
+            drawRoundedRect(x1 - i/2, y1 - i/2, x2 + i/2, y2 + i/2, CORNER_RADIUS, shadowColor);
+        }
+    }
+
+    private void drawRoundedRect(int x1, int y1, int x2, int y2, int radius, int color) {
+        Gui.drawRect(x1 + radius, y1, x2 - radius, y2, color);
+        Gui.drawRect(x1, y1 + radius, x2, y2 - radius, color);
+
+        drawCorner(x1 + radius, y1 + radius, radius, color);
+        drawCorner(x2 - radius, y1 + radius, radius, color);
+        drawCorner(x1 + radius, y2 - radius, radius, color);
+        drawCorner(x2 - radius, y2 - radius, radius, color);
+    }
+
+    private void drawCorner(int cx, int cy, int radius, int color) {
+        for (int x = 0; x < radius; x++) {
+            for (int y = 0; y < radius; y++) {
+                int dx = radius - x;
+                int dy = radius - y;
+                if (dx * dx + dy * dy <= radius * radius) {
+                    Gui.drawRect(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
+                }
+            }
+        }
+    }
+
+    private void drawRoundedBorder(int x1, int y1, int x2, int y2, int radius) {
+        int color = BORDER_COLOR.getRGB();
+
+        Gui.drawRect(x1 + radius, y1, x2 - radius, y1 + 1, color);
+        Gui.drawRect(x1 + radius, y2 - 1, x2 - radius, y2, color);
+        Gui.drawRect(x1, y1 + radius, x1 + 1, y2 - radius, color);
+        Gui.drawRect(x2 - 1, y1 + radius, x2, y2 - radius, color);
     }
 
     public void update() {
@@ -154,11 +210,11 @@ public class CategoryComponent {
     }
 
     public boolean isHovered(int x, int y) {
-        return x >= this.x + 92 - 13 && x <= this.x + this.width && (float) y >= (float) this.y + 2.0F && y <= this.y + this.bh + 1;
+        return x >= this.x + this.width - 13 && x <= this.x + this.width && (float) y >= (float) this.y + 1.0F && y <= this.y + this.bh - 1;
     }
 
     public boolean mousePressed(int x, int y) {
-        return x >= this.x + 77 && x <= this.x + this.width - 6 && (float) y >= (float) this.y + 2.0F && y <= this.y + this.bh + 1;
+        return x >= this.x + 72 && x <= this.x + this.width - 6 && (float) y >= (float) this.y + 1.0F && y <= this.y + this.bh - 1;
     }
 
     public boolean insideArea(int x, int y) {

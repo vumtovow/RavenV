@@ -1,4 +1,3 @@
-
 package ravenv.ui.components;
 
 import ravenv.RavenV;
@@ -9,11 +8,19 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
+import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SliderComponent implements Component {
+    private static final Color BG_TRACK = new Color(30, 30, 40, 180);
+    private static final Color TRACK_FILL = new Color(100, 150, 255, 200);
+    private static final Color TEXT_COLOR = new Color(240, 240, 245);
+    private static final int CORNER_RADIUS = 2;
+    private static final int SHADOW_SIZE = 3;
+
     private final Slider slider;
     private final ModuleComponent parentModule;
     private int offsetY;
@@ -31,17 +38,64 @@ public class SliderComponent implements Component {
     }
 
     public void draw(AtomicInteger offset) {
-        Gui.drawRect(this.parentModule.category.getX() + 4, this.parentModule.category.getY() + this.offsetY + 11, this.parentModule.category.getX() + 4 + this.parentModule.category.getWidth() - 8, this.parentModule.category.getY() + this.offsetY + 15, -12302777);
-        int sliderStart = this.parentModule.category.getX() + 4;
-        int sliderEnd = this.parentModule.category.getX() + 4 + (int) this.sliderWidth;
-        if (sliderEnd - sliderStart > 84) {
-            sliderEnd = sliderStart + 84;
+        int trackStart = this.parentModule.category.getX() + 4;
+        int trackEnd = this.parentModule.category.getX() + 4 + this.parentModule.category.getWidth() - 8;
+        int trackY = this.parentModule.category.getY() + this.offsetY + 11;
+
+        drawShadow(trackStart, trackY, trackEnd, trackY + 3);
+        drawRoundedRect(trackStart, trackY, trackEnd, trackY + 3, CORNER_RADIUS, BG_TRACK.getRGB());
+
+        int sliderStart = trackStart;
+        int sliderEnd = trackStart + (int) this.sliderWidth;
+        if (sliderEnd - sliderStart > trackEnd - trackStart) {
+            sliderEnd = trackEnd;
         }
-        Gui.drawRect(sliderStart, this.parentModule.category.getY() + this.offsetY + 11, sliderEnd, this.parentModule.category.getY() + this.offsetY + 15, ((HUD) RavenV.moduleManager.modules.get(HUD.class)).getColor(System.currentTimeMillis(), offset.get()).getRGB());
+
+        Color accentColor = getAccentColor();
+        drawRoundedRect(sliderStart, trackY, sliderEnd, trackY + 3, CORNER_RADIUS, accentColor.getRGB());
+
         GL11.glPushMatrix();
         GL11.glScaled(0.5D, 0.5D, 0.5D);
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(this.slider.getName() + ": " + this.slider.getValueString(), (float) ((int) ((float) (this.parentModule.category.getX() + 4) * 2.0F)), (float) ((int) ((float) (this.parentModule.category.getY() + this.offsetY + 3) * 2.0F)), -1);
+        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(this.slider.getName() + ": " + this.slider.getValueString(), (float) ((int) ((float) (this.parentModule.category.getX() + 4) * 2.0F)), (float) ((int) ((float) (this.parentModule.category.getY() + this.offsetY + 1) * 2.0F)), TEXT_COLOR.getRGB());
         GL11.glPopMatrix();
+    }
+
+    private Color getAccentColor() {
+        HUD hud = (HUD) RavenV.moduleManager.modules.get(HUD.class);
+        if (hud != null) {
+            return hud.getColor(System.currentTimeMillis());
+        }
+        return TRACK_FILL;
+    }
+
+    private void drawShadow(int x1, int y1, int x2, int y2) {
+        for (int i = SHADOW_SIZE; i > 0; i--) {
+            float alpha = (float) (30 - i * 8) / 255f;
+            int shadowColor = new Color(0, 0, 0, Math.max(0, (int)(alpha * 255))).getRGB();
+            drawRoundedRect(x1 - i/2, y1 - i/2, x2 + i/2, y2 + i/2, CORNER_RADIUS, shadowColor);
+        }
+    }
+
+    private void drawRoundedRect(int x1, int y1, int x2, int y2, int radius, int color) {
+        Gui.drawRect(x1 + radius, y1, x2 - radius, y2, color);
+        Gui.drawRect(x1, y1 + radius, x2, y2 - radius, color);
+
+        drawCorner(x1 + radius, y1 + radius, radius, color);
+        drawCorner(x2 - radius, y1 + radius, radius, color);
+        drawCorner(x1 + radius, y2 - radius, radius, color);
+        drawCorner(x2 - radius, y2 - radius, radius, color);
+    }
+
+    private void drawCorner(int cx, int cy, int radius, int color) {
+        for (int x = 0; x < radius; x++) {
+            for (int y = 0; y < radius; y++) {
+                int dx = radius - x;
+                int dy = radius - y;
+                if (dx * dx + dy * dy <= radius * radius) {
+                    Gui.drawRect(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
+                }
+            }
+        }
     }
 
     public void setComponentStartAt(int newOffsetY) {
@@ -57,7 +111,7 @@ public class SliderComponent implements Component {
         this.y = this.parentModule.category.getY() + this.offsetY;
         this.x = this.parentModule.category.getX();
 
-        double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x));
+        double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x - 4));
         this.sliderWidth = (double) (this.parentModule.category.getWidth() - 8) *
                 (this.slider.getInput() - this.slider.getMin()) /
                 (this.slider.getMax() - this.slider.getMin());
@@ -81,7 +135,6 @@ public class SliderComponent implements Component {
         }
     }
 
-
     private static double roundToPrecision(double v, int precision) {
         if (precision < 0) {
             return 0.0D;
@@ -93,14 +146,9 @@ public class SliderComponent implements Component {
     }
 
     public void mouseDown(int x, int y, int button) {
-        if (this.isLeftHalfHovered(x, y) && button == 0 && this.parentModule.panelExpand) {
+        if (this.isHovered(x, y) && button == 0 && this.parentModule.panelExpand) {
             this.dragging = true;
         }
-
-        if (this.isRightHalfHovered(x, y) && button == 0 && this.parentModule.panelExpand) {
-            this.dragging = true;
-        }
-
     }
 
     public void mouseReleased(int x, int y, int button) {
@@ -109,17 +157,11 @@ public class SliderComponent implements Component {
 
     @Override
     public void keyTyped(char chatTyped, int keyCode) {
-
     }
 
-    public boolean isLeftHalfHovered(int x, int y) {
-        return x > this.x && x < this.x + this.parentModule.category.getWidth() / 2 + 1 && y > this.y && y < this.y + 16;
+    public boolean isHovered(int x, int y) {
+        return x > this.x && x < this.x + this.parentModule.category.getWidth() && y > this.y && y < this.y + 16;
     }
-
-    public boolean isRightHalfHovered(int x, int y) {
-        return x > this.x + this.parentModule.category.getWidth() / 2 && x < this.x + this.parentModule.category.getWidth() && y > this.y && y < this.y + 16;
-    }
-
 
     @Override
     public boolean isVisible() {

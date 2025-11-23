@@ -1,4 +1,3 @@
-
 package ravenv.ui;
 
 import com.google.gson.GsonBuilder;
@@ -23,6 +22,9 @@ public class ClickGui extends GuiScreen {
     private static ClickGui instance;
     private final File configFile = new File("./config/ravenv/", "clickgui.txt");
     private final ArrayList<CategoryComponent> categoryList;
+    private static final Color BACKGROUND = new Color(12, 12, 16, 240);
+    private static final Color TEXT_PRIMARY = new Color(245, 245, 250);
+    private static final Color TEXT_SECONDARY = new Color(180, 180, 190);
 
     public ClickGui() {
         instance = this;
@@ -120,7 +122,6 @@ public class ClickGui extends GuiScreen {
         this.categoryList = new ArrayList<>();
         int topOffset = 5;
 
-
         CategoryComponent combat = new CategoryComponent("Combat", combatModules);
         combat.setY(topOffset);
         categoryList.add(combat);
@@ -152,15 +153,24 @@ public class ClickGui extends GuiScreen {
         return instance;
     }
 
+    public Color getAccentColor() {
+        HUD hud = (HUD) RavenV.moduleManager.modules.get(HUD.class);
+        if (hud != null) {
+            return hud.getColor(System.currentTimeMillis());
+        }
+        return new Color(100, 150, 255);
+    }
+
     public void initGui() {
         super.initGui();
     }
 
     public void drawScreen(int x, int y, float p) {
-        drawRect(0, 0, this.width, this.height, new Color(0, 0, 0, 100).getRGB());
+        drawRect(0, 0, this.width, this.height, BACKGROUND.getRGB());
 
-        mc.fontRendererObj.drawStringWithShadow("ravenv " + RavenV.version, 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
-        mc.fontRendererObj.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
+        Color accentColor = getAccentColor();
+        mc.fontRendererObj.drawStringWithShadow("ravenv " + RavenV.version, 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT * 2, accentColor.getRGB());
+        mc.fontRendererObj.drawStringWithShadow("dev, ksyz", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT, TEXT_SECONDARY.getRGB());
 
         for (CategoryComponent category : categoryList) {
             category.render(this.fontRendererObj);
