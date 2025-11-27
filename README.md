@@ -7,6 +7,9 @@ V fully re-writes many of Raven's core architectures and adds a translation laye
 ### Full UI Overhaul.
 All around improvements have been made to the UI make it more modern and easier on the eyes. Before it looked like outdated and low effort.
 
+## The translation of Liquid Bounce's Kotlin Modules is not a straightforward one.
+Liquid Bounce is built on Minecraft 1.21+ and so many if not all of their event classes use Minecraft functions that don't exist in 1.8.9. Along with the fact that we aren't using the UI and Rendering systems that LiquidBounce does so adding conversions for all of that was also considered. There are other hurdles that needed to be figured out but that will be added here at a later date.
+
 
 ## Building
 
